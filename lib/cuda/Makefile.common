@@ -14,7 +14,8 @@ SHELL = /bin/sh
 
 # System-specific settings
 
-CUDA_INSTALL_PATH = /usr/local/cuda
+#CUDA_INSTALL_PATH = /usr/local/cuda
+CUDA_INSTALL_PATH = /opt/nvidia/cudatoolkit/5.5.20-1.0402.7700.8.1
 #CUDA_INSTALL_PATH = /home/crtrott/lib/cuda
 # e.g. in Gentoo
 # CUDA_INSTALL_PATH = /opt/cuda
