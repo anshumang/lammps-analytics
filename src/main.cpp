@@ -41,12 +41,18 @@
 using namespace LAMMPS_NS;
 
 int rank;
+unsigned long cuptiStart, cuptiEnd; 
+struct timeval cleStart, cleEnd;
 
 static void printActivity(CUpti_Activity *record)
 {
     if((record->kind == CUPTI_ACTIVITY_KIND_KERNEL) || (record->kind == CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL)){
 	CUpti_ActivityKernel2 *kernel = (CUpti_ActivityKernel2 *) record;
-	fprintf(stderr, "rank %d : %s %u %llu %llu\n", rank, kernel->name, kernel->streamId, (unsigned long long) kernel->start, (unsigned long long) kernel->end);
+	if (rank == 0){
+		unsigned long long kernelStart = (cleStart.tv_sec * 1000000) + cleStart.tv_usec + ((kernel->start - cuptiStart)/1000);
+		unsigned long long kernelSpan = ((unsigned long long) kernel->end - (unsigned long long) kernel->start)/1000;
+		fprintf(stderr, "%s %llu %llu\n", kernel->name, kernelStart, kernelSpan);
+	}
     }
 }
 
@@ -115,8 +121,6 @@ int main(int argc, char **argv)
   if(rank == 0)
 	  printf("%s = %llu\n", "CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT", (long long unsigned)attrValue);
 
-  unsigned long cuptiStart, cuptiEnd; 
-  struct timeval cleStart, cleEnd;
   CUPTI_CALL(cuptiGetTimestamp(&cuptiStart));
   gettimeofday(&cleStart, NULL);
   fprintf(stderr, "rank %d : CUPTI start (ns) : %llu CLE start (us) : %llu\n", rank, cuptiStart, cleStart.tv_sec * 1000000 + cleStart.tv_usec);
