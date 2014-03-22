@@ -172,6 +172,7 @@ int main(int argc, char **argv)
 	  CUPTI_CALL(cuptiGetTimestamp(&cuptiEnd));
 	  gettimeofday(&cleEnd, NULL);
 	  fprintf(stderr, "rank %d : CUPTI end (ns) : %llu CLE end (us) : %llu\n", rank, cuptiEnd, cleEnd.tv_sec * 1000000 + cleEnd.tv_usec);
+	  fprintf(stderr, "rank %d : CUPTI elapsed (ns) : %llu CLE elapsed (us) : %llu\n", rank, (cuptiEnd - cuptiStart), ((cleEnd.tv_sec - cleStart.tv_sec) * 1000000 + (cleEnd.tv_usec - cleStart.tv_usec)));
 
   }
 
