@@ -19,6 +19,8 @@
 #include <sys/time.h>
 #include "cupti.h"
 
+#include "analytics_kmeans_cuda_cu.h"
+
 #define CUPTI_CALL(call)                                                \
   do {                                                                  \
     CUptiResult _status = call;                                         \
@@ -48,7 +50,8 @@ static void printActivity(CUpti_Activity *record)
 {
     if((record->kind == CUPTI_ACTIVITY_KIND_KERNEL) || (record->kind == CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL)){
 	CUpti_ActivityKernel2 *kernel = (CUpti_ActivityKernel2 *) record;
-	if (rank == 0){
+	//if (rank == 0){
+	if (rank < 2){ //print for one simulation and one analytics process
 		unsigned long long kernelStart = (cleStart.tv_sec * 1000000) + cleStart.tv_usec + ((kernel->start - cuptiStart)/1000);
 		unsigned long long kernelSpan = ((unsigned long long) kernel->end - (unsigned long long) kernel->start)/1000;
 		fprintf(stderr, "%s %llu %llu\n", kernel->name, kernelStart, kernelSpan);
@@ -108,36 +111,73 @@ int main(int argc, char **argv)
   if(MPI_SUCCESS != MPI_Comm_rank(MPI_COMM_WORLD, &rank))
 	  fprintf(stderr, "MPI_Comm_rank failed\n");  
 
-  size_t attrValue = 0, attrValueSize = sizeof(size_t);
+  MPI_Comm MPI_COMM_WORLD_SIM;
 
-  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_KERNEL));
-  CUPTI_CALL(cuptiActivityRegisterCallbacks(bufferRequested, bufferCompleted));
+  int sim_rank;
 
-  CUPTI_CALL(cuptiActivityGetAttribute(CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE, &attrValueSize, &attrValue));
-  if(rank == 0)
-	  printf("%s = %llu\n", "CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE", (long long unsigned)attrValue);
+  fprintf(stderr, "rank %d before MPI_Comm_split\n", rank);
 
-  CUPTI_CALL(cuptiActivityGetAttribute(CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT, &attrValueSize, &attrValue));
-  if(rank == 0)
-	  printf("%s = %llu\n", "CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT", (long long unsigned)attrValue);
+  if(MPI_SUCCESS != MPI_Comm_split(MPI_COMM_WORLD,rank%2,rank,&MPI_COMM_WORLD_SIM))
+	  fprintf(stderr, "MPI_Comm_split failed\n");
 
-  CUPTI_CALL(cuptiGetTimestamp(&cuptiStart));
-  gettimeofday(&cleStart, NULL);
-  fprintf(stderr, "rank %d : CUPTI start (ns) : %llu CLE start (us) : %llu\n", rank, cuptiStart, cleStart.tv_sec * 1000000 + cleStart.tv_usec);
+  if(MPI_SUCCESS != MPI_Comm_rank(MPI_COMM_WORLD_SIM, &sim_rank))
+	  fprintf(stderr, "MPI_Comm_rank failed\n");
+  fprintf(stderr, "rank %d sim rank %d after MPI_Comm_split\n", rank, sim_rank);
+  
+  //if(rank%2 == 0){
 
-  LAMMPS *lammps = new LAMMPS(argc,argv,MPI_COMM_WORLD);
+	  fprintf(stderr, "rank %d sim rank %d in LAMMPS block\n", rank, sim_rank);
 
-  lammps->input->file();
-  delete lammps;
+	  size_t attrValue = 0, attrValueSize = sizeof(size_t);
 
+	  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_KERNEL));
+	  CUPTI_CALL(cuptiActivityRegisterCallbacks(bufferRequested, bufferCompleted));
+
+	  CUPTI_CALL(cuptiActivityGetAttribute(CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE, &attrValueSize, &attrValue));
+	  if(rank == 0)
+		  printf("%s = %llu\n", "CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE", (long long unsigned)attrValue);
+
+	  CUPTI_CALL(cuptiActivityGetAttribute(CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT, &attrValueSize, &attrValue));
+	  if(rank == 0)
+		  printf("%s = %llu\n", "CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT", (long long unsigned)attrValue);
+
+	  CUPTI_CALL(cuptiGetTimestamp(&cuptiStart));
+	  gettimeofday(&cleStart, NULL);
+	  fprintf(stderr, "rank %d : CUPTI start (ns) : %llu CLE start (us) : %llu\n", rank, cuptiStart, cleStart.tv_sec * 1000000 + cleStart.tv_usec);
+
+  if(rank%2 == 0){
+	  //LAMMPS *lammps = new LAMMPS(argc,argv,MPI_COMM_WORLD);
+	  LAMMPS *lammps = new LAMMPS(argc,argv,MPI_COMM_WORLD_SIM);
+
+	  lammps->input->file();
+	  delete lammps;
+
+	  //MPI_Barrier(MPI_COMM_WORLD);
+	  fprintf(stderr, "LAMMPS rank %d waiting for others\n", rank);
+	  MPI_Barrier(MPI_COMM_WORLD_SIM);
+	  fprintf(stderr, "LAMMPS rank %d done waiting\n", rank);
+	  
+	  CUPTI_CALL(cuptiGetTimestamp(&cuptiEnd));
+	  gettimeofday(&cleEnd, NULL);
+	  fprintf(stderr, "rank %d : CUPTI end (ns) : %llu CLE end (us) : %llu\n", rank, cuptiEnd, cleEnd.tv_sec * 1000000 + cleEnd.tv_usec);
+
+	  fprintf(stderr, "rank %d : CUPTI elapsed (ns) : %llu CLE elapsed (us) : %llu\n", rank, (cuptiEnd - cuptiStart), ((cleEnd.tv_sec - cleStart.tv_sec) * 1000000 + (cleEnd.tv_usec - cleStart.tv_usec)));
+
+  }
+  else {
+	  fprintf(stderr, "rank %d in non LAMMPS block\n", rank);
+	  char* argv[4] = {"kmeans", "-o", "-i", "kdd_cup"};
+	  kmeans_wrap_main(4, (char **)&argv);
+	  
+	  CUPTI_CALL(cuptiGetTimestamp(&cuptiEnd));
+	  gettimeofday(&cleEnd, NULL);
+	  fprintf(stderr, "rank %d : CUPTI end (ns) : %llu CLE end (us) : %llu\n", rank, cuptiEnd, cleEnd.tv_sec * 1000000 + cleEnd.tv_usec);
+
+  }
+
+  fprintf(stderr, "LAMMPS+Analytics rank %d waiting for others\n", rank);
   MPI_Barrier(MPI_COMM_WORLD);
-
-  CUPTI_CALL(cuptiGetTimestamp(&cuptiEnd));
-  gettimeofday(&cleEnd, NULL);
-  fprintf(stderr, "rank %d : CUPTI end (ns) : %llu CLE end (us) : %llu\n", rank, cuptiEnd, cleEnd.tv_sec * 1000000 + cleEnd.tv_usec);
-
-  fprintf(stderr, "rank %d : CUPTI elapsed (ns) : %llu CLE elapsed (us) : %llu\n", rank, (cuptiEnd - cuptiStart), ((cleEnd.tv_sec - cleStart.tv_sec) * 1000000 + (cleEnd.tv_usec - cleStart.tv_usec)));
-
+  fprintf(stderr, "LAMMPS+Analytics rank %d done waiting\n", rank);
   MPI_Finalize();
  
 }

@@ -7,11 +7,14 @@
 
 EXTRAMAKE = Makefile.lammps.standard
 
-CUDA_HOME = /usr/local/cuda
+#CUDA_HOME = /usr/local/cuda
+CUDA_HOME = /opt/nvidia/cudatoolkit/5.5.20-1.0402.7700.8.1
 NVCC = nvcc
 
+#Kepler on Titan
+CUDA_ARCH = -arch=sm_35
 # Tesla CUDA
-CUDA_ARCH = -arch=sm_21
+#CUDA_ARCH = -arch=sm_21
 # newer CUDA
 #CUDA_ARCH = -arch=sm_13
 # older CUDA
@@ -23,17 +26,18 @@ CUDA_ARCH = -arch=sm_21
 LMP_INC = -DLAMMPS_SMALLBIG
 
 # precision for GPU calculations
-# -D_SINGLE_SINGLE  # Single precision for all calculations
+CUDA_PRECISION = -D_SINGLE_SINGLE  # Single precision for all calculations
 # -D_DOUBLE_DOUBLE  # Double precision for all calculations
 # -D_SINGLE_DOUBLE  # Accumulation of forces, etc. in double
 
-CUDA_PRECISION = -D_SINGLE_DOUBLE
+#CUDA_PRECISION = -D_SINGLE_DOUBLE
 
 CUDA_INCLUDE = -I$(CUDA_HOME)/include
 CUDA_LIB = -L$(CUDA_HOME)/lib64
 CUDA_OPTS = -DUNIX -O3 -Xptxas -v --use_fast_math $(LMP_INC)
 
-CUDR_CPP = mpic++ -DMPI_GERYON -DUCL_NO_EXIT -DMPICH_IGNORE_CXX_SEEK
+#CUDR_CPP = mpic++ -DMPI_GERYON -DUCL_NO_EXIT -DMPICH_IGNORE_CXX_SEEK
+CUDR_CPP = cc -DMPI_GERYON -DUCL_NO_EXIT -DMPICH_IGNORE_CXX_SEEK
 CUDR_OPTS = -O2 $(LMP_INC) # -xHost -no-prec-div -ansi-alias
 
 BIN_DIR = ./
