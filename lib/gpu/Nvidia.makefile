@@ -65,7 +65,9 @@ OBJS = $(OBJ_DIR)/lal_atom.o $(OBJ_DIR)/lal_ans.o \
        $(OBJ_DIR)/lal_mie.o $(OBJ_DIR)/lal_mie_ext.o \
        $(OBJ_DIR)/lal_soft.o $(OBJ_DIR)/lal_soft_ext.o \
        $(OBJ_DIR)/lal_lj_coul_msm.o $(OBJ_DIR)/lal_lj_coul_msm_ext.o \
-       $(OBJ_DIR)/lal_lj_gromacs.o $(OBJ_DIR)/lal_lj_gromacs_ext.o $(OBJ_DIR)/analytics_kmeans_cuda.o
+       $(OBJ_DIR)/lal_lj_gromacs.o $(OBJ_DIR)/lal_lj_gromacs_ext.o \
+       $(OBJ_DIR)/analytics_kmeans_cuda.o \
+       $(OBJ_DIR)/analytics_histogram_cuda.o $(OBJ_DIR)/analytics_histogram64_cuda_kernel.o $(OBJ_DIR)/analytics_histogram256_cuda_kernel.o
 
 CBNS = $(OBJ_DIR)/device.cubin $(OBJ_DIR)/device_cubin.h \
        $(OBJ_DIR)/atom.cubin $(OBJ_DIR)/atom_cubin.h \
@@ -138,6 +140,15 @@ $(OBJ_DIR)/scan_app.cu_o: cudpp_mini/scan_app.cu
 
 $(OBJ_DIR)/analytics_kmeans_cuda.o: analytics_kmeans_cuda.cu
 	$(CUDA) -o $@ -c analytics_kmeans_cuda.cu
+
+$(OBJ_DIR)/analytics_histogram_cuda.o: analytics_histogram_cuda.cu
+	$(CUDA) -o $@ -c analytics_histogram_cuda.cu
+
+$(OBJ_DIR)/analytics_histogram64_cuda_kernel.o: analytics_histogram64_cuda_kernel.cu
+	$(CUDA) -o $@ -c analytics_histogram64_cuda_kernel.cu
+
+$(OBJ_DIR)/analytics_histogram256_cuda_kernel.o: analytics_histogram256_cuda_kernel.cu
+	$(CUDA) -o $@ -c analytics_histogram256_cuda_kernel.cu
 
 $(OBJ_DIR)/atom.cubin: lal_atom.cu lal_preprocessor.h
 	$(CUDA) --cubin -DNV_KERNEL -o $@ lal_atom.cu
