@@ -24,6 +24,8 @@
 
 #include "analytics_kmeans_cuda_cu.h"
 #include "analytics_histogram_cuda_cu.h"
+#include "analytics_gaussian_cuda_cu.h"
+#include "analytics_particlefilter_cuda_cu.h"
 
 #define CUPTI_CALL(call)                                                \
   do {                                                                  \
@@ -176,8 +178,14 @@ int main(int argc, char **argv)
 	  //char* argv[4] = {"kmeans", "-o", "-i", "kdd_cup"};
 	  //kmeans_wrap_main(4, (char **)&argv);
 
-	  char *argv[1] = {"histogram"};
-	  histogram_wrap_main(1, (char **)&argv);
+	  //char *argv[1] = {"histogram"};
+	  //histogram_wrap_main(1, (char **)&argv);
+
+	  //char* argv[] = {"gaussian", "-s", "32"};
+	  //gaussian_wrap_main(3, (char **)argv);
+
+	  char *argv[] = {"particle_filter", "-x", "128", "-y", "128", "-z", "10", "-np", "1000"};
+	  particlefilter_wrap_main(9, (char **)argv);
 	  
 	  CUPTI_CALL(cuptiGetTimestamp(&cuptiEnd));
 	  gettimeofday(&cleEnd, NULL);
