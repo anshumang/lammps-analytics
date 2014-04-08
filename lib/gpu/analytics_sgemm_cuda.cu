@@ -85,22 +85,29 @@ sgemm_wrap_main (int argc, char *argv[]) {
 
   // Copy A and B^T into device memory
   pb_SwitchToTimer( &timers, pb_TimerID_COPY );
-  cudaMemcpy(dA, &matA.front(), A_sz, cudaMemcpyHostToDevice); 
-  cudaMemcpy(dB, &matBT.front(), B_sz, cudaMemcpyHostToDevice); 
+   
+#define COUNT 2
+//Loop to tweak length of analytics
+  for(int i=0; i<COUNT; i++){
+	  cudaMemcpy(dA, &matA.front(), A_sz, cudaMemcpyHostToDevice); 
+	  cudaMemcpy(dB, &matBT.front(), B_sz, cudaMemcpyHostToDevice); 
 
-  pb_SwitchToTimer( &timers, pb_TimerID_KERNEL );
+	  pb_SwitchToTimer( &timers, pb_TimerID_KERNEL );
 
-  // Use standard sgemm interface
-  regtileSgemm('N', 'T', matArow, matBcol, matAcol, 1.0f, \
-      dA, matArow, dB, matBcol, 0.0f, dC, matArow);
+	  // Use standard sgemm interface
+	  regtileSgemm('N', 'T', matArow, matBcol, matAcol, 1.0f, \
+			  dA, matArow, dB, matBcol, 0.0f, dC, matArow);
 
-  if (params->outFile) {
-    pb_SwitchToTimer( &timers, pb_TimerID_COPY );
-    cudaMemcpy(&matC.front(), dC, C_sz, cudaMemcpyDeviceToHost);
-    /* Write C to file */
-    pb_SwitchToTimer(&timers, pb_TimerID_IO);
-    writeColMajorMatrixFile(params->outFile,
-	matArow, matBcol, matC); 
+	  if (params->outFile) {
+		  pb_SwitchToTimer( &timers, pb_TimerID_COPY );
+		  cudaMemcpy(&matC.front(), dC, C_sz, cudaMemcpyDeviceToHost);
+		  /* Write C to file */
+		  pb_SwitchToTimer(&timers, pb_TimerID_IO);
+		  if(i == 0){ //only write to output for the first iteration
+			  writeColMajorMatrixFile(params->outFile,
+					  matArow, matBcol, matC); 
+		  }
+	  }
   }
 
   pb_SwitchToTimer(&timers, pb_TimerID_NONE);
