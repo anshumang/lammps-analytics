@@ -26,6 +26,7 @@
 #include "analytics_histogram_cuda_cu.h"
 #include "analytics_gaussian_cuda_cu.h"
 #include "analytics_particlefilter_cuda_cu.h"
+#include "analytics_sgemm_cuda_cu.h"
 
 #define CUPTI_CALL(call)                                                \
   do {                                                                  \
@@ -184,8 +185,11 @@ int main(int argc, char **argv)
 	  //char* argv[] = {"gaussian", "-s", "32"};
 	  //gaussian_wrap_main(3, (char **)argv);
 
-	  char *argv[] = {"particle_filter", "-x", "128", "-y", "128", "-z", "10", "-np", "1000"};
-	  particlefilter_wrap_main(9, (char **)argv);
+	  //char *argv[] = {"particle_filter", "-x", "128", "-y", "128", "-z", "10", "-np", "1000"};
+	  //particlefilter_wrap_main(9, (char **)argv);
+
+	  char *argv[7] = {"sgemm", "-o", "sgemm_out.txt", "-i", "matrix1.txt,matrix2.txt,matrix2t.txt","--"};
+	  sgemm_wrap_main(7, (char **)&argv);
 	  
 	  CUPTI_CALL(cuptiGetTimestamp(&cuptiEnd));
 	  gettimeofday(&cleEnd, NULL);

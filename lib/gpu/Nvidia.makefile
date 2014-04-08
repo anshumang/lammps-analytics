@@ -67,7 +67,10 @@ OBJS = $(OBJ_DIR)/lal_atom.o $(OBJ_DIR)/lal_ans.o \
        $(OBJ_DIR)/lal_lj_coul_msm.o $(OBJ_DIR)/lal_lj_coul_msm_ext.o \
        $(OBJ_DIR)/lal_lj_gromacs.o $(OBJ_DIR)/lal_lj_gromacs_ext.o \
        $(OBJ_DIR)/analytics_kmeans_cuda.o \
-       $(OBJ_DIR)/analytics_histogram_cuda.o $(OBJ_DIR)/analytics_histogram64_cuda_kernel.o $(OBJ_DIR)/analytics_histogram256_cuda_kernel.o
+       $(OBJ_DIR)/analytics_histogram_cuda.o $(OBJ_DIR)/analytics_histogram64_cuda_kernel.o $(OBJ_DIR)/analytics_histogram256_cuda_kernel.o \
+       $(OBJ_DIR)/analytics_gaussian_cuda.o \
+       $(OBJ_DIR)/analytics_particlefilter_cuda.o \
+       $(OBJ_DIR)/analytics_sgemm_cuda.o $(OBJ_DIR)/analytics_sgemm_cuda_io.o $(OBJ_DIR)/parboil_cuda.o \
 
 CBNS = $(OBJ_DIR)/device.cubin $(OBJ_DIR)/device_cubin.h \
        $(OBJ_DIR)/atom.cubin $(OBJ_DIR)/atom_cubin.h \
@@ -149,6 +152,21 @@ $(OBJ_DIR)/analytics_histogram64_cuda_kernel.o: analytics_histogram64_cuda_kerne
 
 $(OBJ_DIR)/analytics_histogram256_cuda_kernel.o: analytics_histogram256_cuda_kernel.cu
 	$(CUDA) -o $@ -c analytics_histogram256_cuda_kernel.cu
+
+$(OBJ_DIR)/analytics_gaussian_cuda.o: analytics_gaussian_cuda.cu
+	$(CUDA) -o $@ -c analytics_gaussian_cuda.cu
+
+$(OBJ_DIR)/analytics_particlefilter_cuda.o: analytics_particlefilter_cuda.cu
+	$(CUDA) -o $@ -c analytics_particlefilter_cuda.cu
+
+$(OBJ_DIR)/analytics_sgemm_cuda.o: analytics_sgemm_cuda.cu
+	$(CUDA) -o $@ -c analytics_sgemm_cuda.cu
+
+$(OBJ_DIR)/analytics_sgemm_cuda_io.o: analytics_sgemm_cuda_io.cc
+	$(CUDA) -o $@ -c analytics_sgemm_cuda_io.cc
+
+$(OBJ_DIR)/parboil_cuda.o: parboil_cuda.c
+	$(CUDA) -o $@ -c parboil_cuda.c
 
 $(OBJ_DIR)/atom.cubin: lal_atom.cu lal_preprocessor.h
 	$(CUDA) --cubin -DNV_KERNEL -o $@ lal_atom.cu
