@@ -450,6 +450,7 @@ void Output::write_restart(bigint ntimestep)
 
 void Output::reset_timestep(bigint ntimestep)
 {
+  fprintf(stderr, "ntimestep\t%ld\n", ntimestep);
   next_dump_any = MAXBIGINT;
   for (int idump = 0; idump < ndump; idump++) {
     if (every_dump[idump]) {

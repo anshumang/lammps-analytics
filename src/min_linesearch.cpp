@@ -34,6 +34,7 @@
 #include "thermo.h"
 #include "timer.h"
 #include "error.h"
+#include <sys/time.h>
 
 using namespace LAMMPS_NS;
 
@@ -181,6 +182,7 @@ void MinLineSearch::reset_vectors()
 
 int MinLineSearch::linemin_backtrack(double eoriginal, double &alpha)
 {
+  //fprintf(stderr, "linemin_backtrack\n");
   int i,m,n;
   double fdothall,fdothme,hme,hmax,hmaxall;
   double de_ideal,de;
@@ -234,6 +236,13 @@ int MinLineSearch::linemin_backtrack(double eoriginal, double &alpha)
   }
   if (hmaxall == 0.0) return ZEROFORCE;
 
+  struct timeval curr;
+  unsigned long curr_time;
+  gettimeofday(&curr, NULL);
+  curr_time = curr.tv_sec * 1000000 + curr.tv_usec;
+  //if(linsearch_rank == 0){
+	  //fprintf(stderr, "Before store_box %ld\n", curr_time);
+  //}
   // store box and values of all dof at start of linesearch
 
   fix_minimize->store_box();
@@ -258,8 +267,17 @@ int MinLineSearch::linemin_backtrack(double eoriginal, double &alpha)
 
   // backtrack with alpha until energy decrease is sufficient
 
+  gettimeofday(&curr, NULL);
+  curr_time = curr.tv_sec * 1000000 + curr.tv_usec;
+  //fprintf(stderr, "Before while(1) %ld\n", curr_time);
+  int iter = 0;
   while (1) {
+    iter++;
+    //fprintf(stderr, "iter %d\n", iter);
     ecurrent = alpha_step(alpha,1);
+    gettimeofday(&curr, NULL);
+    curr_time = curr.tv_sec * 1000000 + curr.tv_usec;
+    //fprintf(stderr, "After alpha_step [1] %ld\n", curr_time);
 
     // if energy change is better than ideal, exit with success
 
@@ -280,6 +298,9 @@ int MinLineSearch::linemin_backtrack(double eoriginal, double &alpha)
     // backtracked all the way to 0.0
     // reset to starting point, exit with error
 
+    gettimeofday(&curr, NULL);
+    curr_time = curr.tv_sec * 1000000 + curr.tv_usec;
+    //fprintf(stderr, "Before alpha_step [2] %ld\n", curr_time);
     if (alpha <= 0.0 || de_ideal >= -EMACH) {
       ecurrent = alpha_step(0.0,0);
       return ZEROALPHA;
@@ -327,6 +348,7 @@ int MinLineSearch::linemin_backtrack(double eoriginal, double &alpha)
 
 int MinLineSearch::linemin_quadratic(double eoriginal, double &alpha)
 {
+  fprintf(stderr, "linemin_quadratic\n");
   int i,m,n;
   double fdothall,fdothme,hme,hmax,hmaxall;
   double de_ideal,de;
@@ -584,6 +606,7 @@ pseudo code:
 
 int MinLineSearch::linemin_forcezero(double eoriginal, double &alpha)
 {
+  fprintf(stderr, "linemin_forcezero\n");
   int i,m,n;
   double fdothall,fdothme,hme,hmax,hmaxall;
   double de;
@@ -874,6 +897,11 @@ double MinLineSearch::alpha_step(double alpha, int resetflag)
   // compute and return new energy
 
   neval++;
+  struct timeval curr;
+  unsigned long curr_time;
+  gettimeofday(&curr, NULL);
+  curr_time = curr.tv_sec * 1000000 + curr.tv_usec;
+  //fprintf(stderr, "Before energy_force %ld\n", curr_time);
   return energy_force(resetflag);
 }
 

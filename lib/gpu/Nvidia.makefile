@@ -1,3 +1,4 @@
+#CUDA_LIB = /opt/nvidia/cudatoolkit/5.5.20-1.0402.7700.8.1/lib64
 CUDA  = $(NVCC) $(CUDA_INCLUDE) $(CUDA_OPTS) -Icudpp_mini $(CUDA_ARCH) \
              $(CUDA_PRECISION)
 CUDR  = $(CUDR_CPP) $(CUDR_OPTS) $(CUDA_PRECISION) $(CUDA_INCLUDE) \
@@ -71,6 +72,20 @@ OBJS = $(OBJ_DIR)/lal_atom.o $(OBJ_DIR)/lal_ans.o \
        $(OBJ_DIR)/analytics_gaussian_cuda.o \
        $(OBJ_DIR)/analytics_particlefilter_cuda.o \
        $(OBJ_DIR)/analytics_sgemm_cuda.o $(OBJ_DIR)/analytics_sgemm_cuda_io.o $(OBJ_DIR)/parboil_cuda.o \
+       $(OBJ_DIR)/analytics_stencil_cuda.o $(OBJ_DIR)/analytics_stencil_cuda_file.o $(OBJ_DIR)/analytics_stencil_cuda_kernel.o \
+       $(OBJ_DIR)/excl.o \
+       $(OBJ_DIR)/cutcpu.o \
+       $(OBJ_DIR)/readatom.o \
+       $(OBJ_DIR)/output.o \
+       $(OBJ_DIR)/cutoff6overlap.o \
+       $(OBJ_DIR)/parboil_cutcp_wrapper.o \
+       $(OBJ_DIR)/histo_final.o \
+       $(OBJ_DIR)/histo_intermediates.o \
+       $(OBJ_DIR)/histo_main.o \
+       $(OBJ_DIR)/histo_prescan.o \
+       $(OBJ_DIR)/util.o \
+       $(OBJ_DIR)/parboil_histo_wrapper.o \
+       $(OBJ_DIR)/parboil_stencil_wrapper.o
 
 CBNS = $(OBJ_DIR)/device.cubin $(OBJ_DIR)/device_cubin.h \
        $(OBJ_DIR)/atom.cubin $(OBJ_DIR)/atom_cubin.h \
@@ -117,6 +132,10 @@ CBNS = $(OBJ_DIR)/device.cubin $(OBJ_DIR)/device_cubin.h \
        $(OBJ_DIR)/soft.cubin $(OBJ_DIR)/soft_cubin.h \
        $(OBJ_DIR)/lj_coul_msm.cubin $(OBJ_DIR)/lj_coul_msm_cubin.h \
        $(OBJ_DIR)/lj_gromacs.cubin $(OBJ_DIR)/lj_gromacs_cubin.h
+#$(OBJ_DIR)/histo_final.cubin $(OBJ_DIR)/histo_final_cubin.h \
+#$(OBJ_DIR)/histo_intermediates.cubin $(OBJ_DIR)/histo_intermediates_cubin.h \
+#$(OBJ_DIR)/histo_main.cubin $(OBJ_DIR)/histo_main_cubin.h \
+#$(OBJ_DIR)/histo_prescan.cubin $(OBJ_DIR)/histo_prescan_cubin.h
 
 all: $(OBJ_DIR) $(GPU_LIB) $(EXECS)
 
@@ -141,8 +160,78 @@ $(OBJ_DIR)/radixsort_app.cu_o: cudpp_mini/radixsort_app.cu
 $(OBJ_DIR)/scan_app.cu_o: cudpp_mini/scan_app.cu
 	$(CUDA) -o $@ -c cudpp_mini/scan_app.cu
 
+$(OBJ_DIR)/parboil_cuda.o: parboil_cuda.c
+	$(CUDR) -o $@ -c parboil_cuda.c
+
+$(OBJ_DIR)/parboil_cutcp_wrapper.o: parboil_cutcp/parboil_cutcp_wrapper.c
+	$(CUDR) -o $@ -c parboil_cutcp/parboil_cutcp_wrapper.c
+
+$(OBJ_DIR)/excl.o: parboil_cutcp/excl.c
+	$(CUDR) -o $@ -c parboil_cutcp/excl.c
+
+$(OBJ_DIR)/cutcpu.o: parboil_cutcp/cutcpu.c
+	$(CUDR) -o $@ -c parboil_cutcp/cutcpu.c
+
+$(OBJ_DIR)/readatom.o: parboil_cutcp/readatom.c
+	$(CUDR) -o $@ -c parboil_cutcp/readatom.c
+
+$(OBJ_DIR)/output.o: parboil_cutcp/output.c
+	$(CUDR) -o $@ -c parboil_cutcp/output.c
+
+$(OBJ_DIR)/cutoff6overlap.o: parboil_cutcp/cutoff6overlap.cu
+	$(CUDA) -o $@ -c parboil_cutcp/cutoff6overlap.cu
+
 $(OBJ_DIR)/analytics_kmeans_cuda.o: analytics_kmeans_cuda.cu
 	$(CUDA) -o $@ -c analytics_kmeans_cuda.cu
+
+#Parboil Histo Start
+$(OBJ_DIR)/histo_final.o: parboil_histo/histo_final.cu
+	$(CUDA) -o $@ -c parboil_histo/histo_final.cu
+
+$(OBJ_DIR)/histo_intermediates.o: parboil_histo/histo_intermediates.cu
+	$(CUDA) -o $@ -c parboil_histo/histo_intermediates.cu
+
+$(OBJ_DIR)/histo_main.o: parboil_histo/histo_main.cu
+	$(CUDA) -o $@ -c parboil_histo/histo_main.cu
+
+$(OBJ_DIR)/histo_prescan.o: parboil_histo/histo_prescan.cu
+	$(CUDA) -o $@ -c parboil_histo/histo_prescan.cu
+
+#$(OBJ_DIR)/histo_final.cubin: parboil_histo/histo_final.cu parboil_histo/histo_preprocessor.h
+#	$(CUDA) --cubin -DNV_KERNEL -o $@ parboil_histo/histo_final.cu
+
+#$(OBJ_DIR)/parboil_histo/histo_final_cubin.h: $(OBJ_DIR)/histo_final.cubin
+#	$(BIN2C) -c -n histo_final $(OBJ_DIR)/histo_final.cubin > $(OBJ_DIR)/parboil_histo/histo_final_cubin.h
+
+#$(OBJ_DIR)/histo_intermediates.cubin: parboil_histo/histo_intermediates.cu parboil_histo/histo_preprocessor.h
+#	$(CUDA) --cubin -DNV_KERNEL -o $@ parboil_histo/histo_intermediates.cu
+
+#$(OBJ_DIR)/parboil_histo/histo_intermediates_cubin.h: $(OBJ_DIR)/histo_intermediates.cubin
+#	$(BIN2C) -c -n histo_intermediates $(OBJ_DIR)/histo_intermediates.cubin > $(OBJ_DIR)/parboil_histo/histo_intermediates_cubin.h
+
+#$(OBJ_DIR)/histo_main.cubin: parboil_histo/histo_main.cu parboil_histo/histo_preprocessor.h
+#	$(CUDA) --cubin -DNV_KERNEL -o $@ parboil_histo/histo_main.cu
+
+#$(OBJ_DIR)/parboil_histo/histo_main_cubin.h: $(OBJ_DIR)/histo_main.cubin
+#	$(BIN2C) -c -n histo_main $(OBJ_DIR)/histo_main.cubin > $(OBJ_DIR)/parboil_histo/histo_main_cubin.h
+
+#$(OBJ_DIR)/histo_prescan.cubin: parboil_histo/histo_prescan.cu parboil_histo/histo_preprocessor.h
+#	$(CUDA) --cubin -DNV_KERNEL -o $@ parboil_histo/histo_prescan.cu
+
+#$(OBJ_DIR)/parboil_histo/histo_prescan_cubin.h: $(OBJ_DIR)/histo_prescan.cubin
+#	$(BIN2C) -c -n histo_prescan $(OBJ_DIR)/histo_prescan.cubin > $(OBJ_DIR)/parboil_histo/histo_prescan_cubin.h
+
+$(OBJ_DIR)/util.o: parboil_histo/util.cpp
+	$(CUDR) -o $@ -c parboil_histo/util.cpp -I$(OBJ_DIR)
+
+#$(OBJ_DIR)/parboil_histo_wrapper.o: parboil_histo/parboil_histo_wrapper.cpp $(OBJ_DIR)/parboil_histo/histo_final_cubin.h $(OBJ_DIR)/parboil_histo/histo_intermediates_cubin.h $(OBJ_DIR)/parboil_histo/histo_main_cubin.h $(OBJ_DIR)/parboil_histo/histo_prescan_cubin.h
+
+$(OBJ_DIR)/parboil_histo_wrapper.o: parboil_histo/parboil_histo_wrapper.cu
+	$(CUDA) -o $@ -c parboil_histo/parboil_histo_wrapper.cu -I$(OBJ_DIR)
+#Parboil Histo End
+
+$(OBJ_DIR)/parboil_stencil_wrapper.o: parboil_stencil/parboil_stencil_wrapper.cu
+	$(CUDA) -o $@ -c parboil_stencil/parboil_stencil_wrapper.cu -I$(OBJ_DIR)
 
 $(OBJ_DIR)/analytics_histogram_cuda.o: analytics_histogram_cuda.cu
 	$(CUDA) -o $@ -c analytics_histogram_cuda.cu
@@ -165,8 +254,14 @@ $(OBJ_DIR)/analytics_sgemm_cuda.o: analytics_sgemm_cuda.cu
 $(OBJ_DIR)/analytics_sgemm_cuda_io.o: analytics_sgemm_cuda_io.cc
 	$(CUDA) -o $@ -c analytics_sgemm_cuda_io.cc
 
-$(OBJ_DIR)/parboil_cuda.o: parboil_cuda.c
-	$(CUDA) -o $@ -c parboil_cuda.c
+$(OBJ_DIR)/analytics_stencil_cuda.o: analytics_stencil_cuda.cu
+	$(CUDA) -o $@ -c analytics_stencil_cuda.cu
+
+$(OBJ_DIR)/analytics_stencil_cuda_file.o: analytics_stencil_cuda_file.cc
+	$(CUDA) -o $@ -c analytics_stencil_cuda_file.cc
+
+$(OBJ_DIR)/analytics_stencil_cuda_kernel.o: analytics_stencil_cuda_kernel.cu
+	$(CUDA) -o $@ -c analytics_stencil_cuda_kernel.cu
 
 $(OBJ_DIR)/atom.cubin: lal_atom.cu lal_preprocessor.h
 	$(CUDA) --cubin -DNV_KERNEL -o $@ lal_atom.cu
@@ -690,8 +785,11 @@ $(OBJ_DIR)/lal_lj_gromacs.o: $(ALL_H) lal_lj_gromacs.h lal_lj_gromacs.cpp $(OBJ_
 $(OBJ_DIR)/lal_lj_gromacs_ext.o: $(ALL_H) lal_lj_gromacs.h lal_lj_gromacs_ext.cpp lal_base_atomic.h
 	$(CUDR) -o $@ -c lal_lj_gromacs_ext.cpp -I$(OBJ_DIR)
 
+#$(BIN_DIR)/nvc_get_devices: ./geryon/ucl_get_devices.cpp $(NVD_H)
+#	$(CUDR) -o $@ ./geryon/ucl_get_devices.cpp -DUCL_CUDADR $(CUDA_LIB) -L/opt/cray/nvidia/default/lib64/ -lcuda 
+
 $(BIN_DIR)/nvc_get_devices: ./geryon/ucl_get_devices.cpp $(NVD_H)
-	$(CUDR) -o $@ ./geryon/ucl_get_devices.cpp -DUCL_CUDADR $(CUDA_LIB) -lcuda 
+	CC $(CUDR_OPTS) $(CUDA_PRECISION) $(CUDA_INCLUDE) $(CUDPP_OPT) -o $@ ./geryon/ucl_get_devices.cpp -DUCL_CUDADR $(CUDA_LIB) -L/opt/cray/nvidia/default/lib64/ -lcuda 
 
 $(GPU_LIB): $(OBJS) $(CUDPP)
 	$(AR) -crusv $(GPU_LIB) $(OBJS) $(CUDPP)

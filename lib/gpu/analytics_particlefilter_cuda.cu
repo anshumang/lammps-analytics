@@ -701,7 +701,12 @@ void particleFilter(unsigned char * I, int IszX, int IszY, int Nfr, int * seed, 
     check_error(cudaMalloc((void **) &seed_GPU, sizeof (int) *Nparticles));
     check_error(cudaMalloc((void **) &partial_sums, sizeof (double) *Nparticles));
 
+#define COUNT 2
+long long send_end, back_time, free_time, arrayX_time, arrayY_time;
+for(int i=0; i<1000/*i<COUNT*/; i++){
 
+        if(i%10 == 0)
+	fprintf(stderr, "PARTICLEFILTER iteration %d\n", i);
     //Donnie - this loop is different because in this kernel, arrayX and arrayY
     //  are set equal to xj before every iteration, so effectively, arrayX and 
     //  arrayY will be set to xe and ye before the first iteration.
@@ -722,8 +727,8 @@ void particleFilter(unsigned char * I, int IszX, int IszY, int Nfr, int * seed, 
     check_error(cudaMemcpy(xj_GPU, xj, sizeof (double) *Nparticles, cudaMemcpyHostToDevice));
     check_error(cudaMemcpy(yj_GPU, yj, sizeof (double) *Nparticles, cudaMemcpyHostToDevice));
     check_error(cudaMemcpy(seed_GPU, seed, sizeof (int) *Nparticles, cudaMemcpyHostToDevice));
-    long long send_end = get_time();
-    printf("TIME TO SEND TO GPU: %f\n", elapsed_time(send_start, send_end));
+    send_end = get_time();
+    //printf("TIME TO SEND TO GPU: %f\n", elapsed_time(send_start, send_end));
     int num_blocks = ceil((double) Nparticles / (double) threads_per_block);
 
 
@@ -741,7 +746,7 @@ void particleFilter(unsigned char * I, int IszX, int IszY, int Nfr, int * seed, 
 
     //block till kernels are finished
     cudaThreadSynchronize();
-    long long back_time = get_time();
+    back_time = get_time();
 
     cudaFree(xj_GPU);
     cudaFree(yj_GPU);
@@ -754,12 +759,13 @@ void particleFilter(unsigned char * I, int IszX, int IszY, int Nfr, int * seed, 
     cudaFree(seed_GPU);
     cudaFree(partial_sums);
 
-    long long free_time = get_time();
+    free_time = get_time();
     check_error(cudaMemcpy(arrayX, arrayX_GPU, sizeof (double) *Nparticles, cudaMemcpyDeviceToHost));
-    long long arrayX_time = get_time();
+    arrayX_time = get_time();
     check_error(cudaMemcpy(arrayY, arrayY_GPU, sizeof (double) *Nparticles, cudaMemcpyDeviceToHost));
-    long long arrayY_time = get_time();
+    arrayY_time = get_time();
     check_error(cudaMemcpy(weights, weights_GPU, sizeof (double) *Nparticles, cudaMemcpyDeviceToHost));
+}
     long long back_end_time = get_time();
     printf("GPU Execution: %lf\n", elapsed_time(send_end, back_time));
     printf("FREE TIME: %lf\n", elapsed_time(back_time, free_time));

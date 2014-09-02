@@ -23,6 +23,10 @@
 #include <unistd.h>
 
 #include "analytics_kmeans_cuda_cu.h"
+#include "analytics_histogram_cuda_cu.h"
+#include "analytics_gaussian_cuda_cu.h"
+#include "analytics_particlefilter_cuda_cu.h"
+#include "analytics_sgemm_cuda_cu.h"
 
 #define CUPTI_CALL(call)                                                \
   do {                                                                  \
@@ -56,7 +60,7 @@ static void printActivity(CUpti_Activity *record)
 	if (rank < 2){ //print for one simulation and one analytics process
 		unsigned long long kernelStart = (cleStart.tv_sec * 1000000) + cleStart.tv_usec + ((kernel->start - cuptiStart)/1000);
 		unsigned long long kernelSpan = ((unsigned long long) kernel->end - (unsigned long long) kernel->start)/1000;
-		fprintf(stderr, "%s %llu %llu\n", kernel->name, kernelStart, kernelSpan);
+		fprintf(stderr, %u : "%s %llu %llu\n", kernel->streamId, kernel->name, kernelStart, kernelSpan);
 	}
     }
 }
@@ -172,8 +176,20 @@ int main(int argc, char **argv)
 	  setenv("IS_ANALYTICS", "1", 1);
 	  MPI_Barrier(MPI_COMM_WORLD_SIM_ANA);
 
-	  char* argv[4] = {"kmeans", "-o", "-i", "kdd_cup"};
-	  kmeans_wrap_main(4, (char **)&argv);
+	  //char* argv[4] = {"kmeans", "-o", "-i", "kdd_cup"};
+	  //kmeans_wrap_main(4, (char **)&argv);
+
+	  //char *argv[1] = {"histogram"};
+	  //histogram_wrap_main(1, (char **)&argv);
+
+	  //char* argv[] = {"gaussian", "-s", "32"};
+	  //gaussian_wrap_main(3, (char **)argv);
+
+	  //char *argv[] = {"particle_filter", "-x", "128", "-y", "128", "-z", "10", "-np", "1000"};
+	  //particlefilter_wrap_main(9, (char **)argv);
+
+	  char *argv[7] = {"sgemm", "-o", "sgemm_out.txt", "-i", "matrix1.txt,matrix2.txt,matrix2t.txt","--"};
+	  sgemm_wrap_main(7, (char **)&argv);
 	  
 	  CUPTI_CALL(cuptiGetTimestamp(&cuptiEnd));
 	  gettimeofday(&cleEnd, NULL);

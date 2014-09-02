@@ -43,6 +43,12 @@
 #include "timer.h"
 #include "memory.h"
 #include "error.h"
+#include <sys/time.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <mqueue.h>
+#include <errno.h>
 
 using namespace LAMMPS_NS;
 
@@ -385,6 +391,7 @@ void Min::run(int n)
 {
   // minimizer iterations
 
+  //fprintf(stderr, "Min::run calling iterate with %d\n", n);
   stop_condition = iterate(n);
   stopstr = stopstrings(stop_condition);
 
@@ -398,6 +405,7 @@ void Min::run(int n)
 
   if (stop_condition) {
     update->nsteps = niter;
+    //fprintf(stderr, "Min::run %d\n", update->nsteps);
 
     if (update->restrict_output == 0) {
       for (int idump = 0; idump < output->ndump; idump++)
@@ -448,7 +456,10 @@ void Min::cleanup()
    return negative gradient stored in atom->f
    return negative gradient for nextra_global dof in fextra
 ------------------------------------------------------------------------- */
-
+//extern void *ptr;
+extern int g_iter, my_sim_g_rank;
+//extern unsigned *iterFlag;
+extern mqd_t mqd_sim;
 double Min::energy_force(int resetflag)
 {
   // check for reneighboring
@@ -486,28 +497,86 @@ double Min::energy_force(int resetflag)
 
   timer->stamp();
 
+  struct timeval curr;
+  unsigned long curr_time;
+  //gettimeofday(&curr, NULL);
+  //curr_time = curr.tv_sec * 1000000 + curr.tv_usec;
+  //fprintf(stderr, "Before compute %ld\n", curr_time);
+  
+  if (-1 == mq_send(mqd_sim, (const char *)&g_iter, sizeof(int), 0)){
+  	  perror("mq_send() LAMMPS sending new step");
+  }
+  /*else{
+	  if(my_sim_g_rank == 0){
+		  fprintf(stderr, "==========================================LAMMPS (rank %d) sending new step %d\n", my_sim_g_rank, g_iter);
+	  }
+  }*/
+  //gettimeofday(&curr, NULL);
+  //curr_time = curr.tv_sec * 1000000 + curr.tv_usec;
+  //if(my_sim_g_rank == 0){
+  //	  fprintf(stderr, "%llu\t%d\n", curr_time, g_iter);
+  //}
   if (pair_compute_flag) {
+    //*iterFlag = g_iter;
+	  gettimeofday(&curr, NULL);
+	  curr_time = curr.tv_sec * 1000000 + curr.tv_usec;
+    if(my_sim_g_rank == 0){
+    	  fprintf(stderr, "MIN\t%llu\t%d\n", curr_time, g_iter);
+    }
     force->pair->compute(eflag,vflag);
+    //gettimeofday(&curr, NULL);
+    //curr_time = curr.tv_sec * 1000000 + curr.tv_usec;
+    //fprintf(stderr, "After force pair compute %ld\n", curr_time);
     timer->stamp(TIME_PAIR);
   }
 
   if (atom->molecular) {
-    if (force->bond) force->bond->compute(eflag,vflag);
-    if (force->angle) force->angle->compute(eflag,vflag);
-    if (force->dihedral) force->dihedral->compute(eflag,vflag);
-    if (force->improper) force->improper->compute(eflag,vflag);
+    if (force->bond){ 
+	force->bond->compute(eflag,vflag);
+	//gettimeofday(&curr, NULL);
+	//curr_time = curr.tv_sec * 1000000 + curr.tv_usec;
+	//fprintf(stderr, "After force bond compute %ld\n", curr_time);
+    }    
+    if (force->angle){ 
+	force->angle->compute(eflag,vflag);
+	//gettimeofday(&curr, NULL);
+	//curr_time = curr.tv_sec * 1000000 + curr.tv_usec;
+	//fprintf(stderr, "After force angle compute %ld\n", curr_time);
+    }
+    if (force->dihedral){ 
+	force->dihedral->compute(eflag,vflag);
+	//gettimeofday(&curr, NULL);
+	//curr_time = curr.tv_sec * 1000000 + curr.tv_usec;
+	//fprintf(stderr, "After force dihedral compute %ld\n", curr_time);
+    }
+    if (force->improper){ 
+	force->improper->compute(eflag,vflag);
+	//gettimeofday(&curr, NULL);
+	//curr_time = curr.tv_sec * 1000000 + curr.tv_usec;
+	//fprintf(stderr, "After force improper compute %ld\n", curr_time);
+    }
     timer->stamp(TIME_BOND);
   }
 
   if (kspace_compute_flag) {
     force->kspace->compute(eflag,vflag);
+    //gettimeofday(&curr, NULL);
+    //curr_time = curr.tv_sec * 1000000 + curr.tv_usec;
+    //fprintf(stderr, "After force kspace compute %ld\n", curr_time);
     timer->stamp(TIME_KSPACE);
   }
 
   if (force->newton) {
     comm->reverse_comm();
+    //gettimeofday(&curr, NULL);
+    //curr_time = curr.tv_sec * 1000000 + curr.tv_usec;
+    //fprintf(stderr, "After force newton reverse comm %ld\n", curr_time);
     timer->stamp(TIME_COMM);
   }
+
+  //gettimeofday(&curr, NULL);
+  //curr_time = curr.tv_sec * 1000000 + curr.tv_usec;
+  //fprintf(stderr, "Before update of per-atom minimization variables %ld\n", curr_time);
 
   // update per-atom minimization variables stored by pair styles
 

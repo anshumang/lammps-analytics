@@ -74,7 +74,7 @@ class EAM : public BaseAtomic<numtyp, acctyp> {
                int **firstneigh, const bool eflag, const bool vflag,
                const bool eatom, const bool vatom, int &host_start,
                const double cpu_time, bool &success,
-               void **fp_ptr);
+               void **fp_ptr, int mpi_rank);
                
   /// Pair loop with device neighboring
   int** compute(const int ago, const int inum_full, const int nall,
@@ -83,11 +83,11 @@ class EAM : public BaseAtomic<numtyp, acctyp> {
                 tagint **special, const bool eflag, const bool vflag, 
                 const bool eatom, const bool vatom, int &host_start, 
                 int **ilist, int **numj, const double cpu_time, bool &success,
-                int &inum, void **fp_ptr);
+                int &inum, void **fp_ptr, int mpi_rank);
 
   /// Pair loop with host neighboring
   void compute2(int *ilist, const bool eflag, const bool vflag, 
-                const bool eatom, const bool vatom);
+                const bool eatom, const bool vatom, int mpi_rank);
   
   // ------------------------- DEVICE KERNELS -------------------------
   UCL_Kernel k_energy, k_energy_fast;

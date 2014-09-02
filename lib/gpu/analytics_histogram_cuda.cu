@@ -94,13 +94,20 @@ int histogram_wrap_main(int argc, char **argv)
     fprintf(stderr,"%d : ...allocating GPU memory and copying input data\n\n", getpid());
     checkCudaErrors(cudaMalloc((void **)&d_Data, byteCount));
     checkCudaErrors(cudaMalloc((void **)&d_Histogram, HISTOGRAM256_BIN_COUNT * sizeof(uint)));
+
+#define COUNT 2
+for(int i=0; i<1000;/*i<COUNT;*/ i++){
+
+        if(i%10 == 0)
+	fprintf(stderr, "HISTOGRAM iteration %d\n", i);
+
     checkCudaErrors(cudaMemcpy(d_Data, h_Data, byteCount, cudaMemcpyHostToDevice));
 
     {
-        fprintf(stderr,"%d : Starting up 64-bin histogram...\n\n", getpid());
+        //fprintf(stderr,"%d : Starting up 64-bin histogram...\n\n", getpid());
         initHistogram64();
 
-        fprintf(stderr,"%d : Running 64-bin GPU histogram for %u bytes (%u runs)...\n\n", getpid(), byteCount, numRuns);
+        //fprintf(stderr,"%d : Running 64-bin GPU histogram for %u bytes (%u runs)...\n\n", getpid(), byteCount, numRuns);
 
         for (int iter = -1; iter < numRuns; iter++)
         {
@@ -123,7 +130,7 @@ int histogram_wrap_main(int argc, char **argv)
           //     (1.0e-6 * (double)byteCount / dAvgSecs), dAvgSecs, byteCount, 1, HISTOGRAM64_THREADBLOCK_SIZE);
 
         //fprintf(stderr,"\nValidating GPU results...\n");
-        fprintf(stderr,"%d :  ...reading back GPU results\n", getpid());
+        //fprintf(stderr,"%d :  ...reading back GPU results\n", getpid());
         checkCudaErrors(cudaMemcpy(h_HistogramGPU, d_Histogram, HISTOGRAM64_BIN_COUNT * sizeof(uint), cudaMemcpyDeviceToHost));
 
         /*fprintf(stderr," ...histogram64CPU()\n");
@@ -143,15 +150,15 @@ int histogram_wrap_main(int argc, char **argv)
 
         fprintf(stderr,PassFailFlag ? " ...64-bin histograms match\n\n" : " ***64-bin histograms do not match!!!***\n\n");*/
 
-        fprintf(stderr,"%d : Shutting down 64-bin histogram...\n\n\n", getpid());
+        //fprintf(stderr,"%d : Shutting down 64-bin histogram...\n\n\n", getpid());
         closeHistogram64();
     }
 
     {
-        fprintf(stderr,"%d : Initializing 256-bin histogram...\n", getpid());
+        //fprintf(stderr,"%d : Initializing 256-bin histogram...\n", getpid());
         initHistogram256();
 
-        fprintf(stderr,"%d : Running 256-bin GPU histogram for %u bytes (%u runs)...\n\n", getpid(), byteCount, numRuns);
+        //fprintf(stderr,"%d : Running 256-bin GPU histogram for %u bytes (%u runs)...\n\n", getpid(), byteCount, numRuns);
 
         for (int iter = -1; iter < numRuns; iter++)
         {
@@ -174,7 +181,7 @@ int histogram_wrap_main(int argc, char **argv)
           //     (1.0e-6 * (double)byteCount / dAvgSecs), dAvgSecs, byteCount, 1, HISTOGRAM256_THREADBLOCK_SIZE);
 
         //fprintf(stderr,"\nValidating GPU results...\n");
-        fprintf(stderr,"%d :  ...reading back GPU results\n", getpid());
+        //fprintf(stderr,"%d :  ...reading back GPU results\n", getpid());
         checkCudaErrors(cudaMemcpy(h_HistogramGPU, d_Histogram, HISTOGRAM256_BIN_COUNT * sizeof(uint), cudaMemcpyDeviceToHost));
 
         /*fprintf(stderr," ...histogram256CPU()\n");
@@ -194,11 +201,13 @@ int histogram_wrap_main(int argc, char **argv)
 
         fprintf(stderr,PassFailFlag ? " ...256-bin histograms match\n\n" : " ***256-bin histograms do not match!!!***\n\n");*/
 
-        fprintf(stderr,"%d : Shutting down 256-bin histogram...\n\n\n", getpid());
+        //fprintf(stderr,"%d : Shutting down 256-bin histogram...\n\n\n", getpid());
         closeHistogram256();
     }
 
-    fprintf(stderr,"%d : Shutting down...\n", getpid());
+}
+
+    //fprintf(stderr,"%d : Shutting down...\n", getpid());
     sdkDeleteTimer(&hTimer);
     checkCudaErrors(cudaFree(d_Histogram));
     checkCudaErrors(cudaFree(d_Data));

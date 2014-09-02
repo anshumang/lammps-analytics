@@ -21,6 +21,10 @@ const char *eam=0;
 #include "eam_cubin.h"
 #endif
 
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/time.h>
+
 #include "lal_eam.h"
 #include <cassert>
 using namespace LAMMPS_AL;
@@ -41,7 +45,7 @@ template <class numtyp, class acctyp>
 EAMT::~EAM() {
   clear();
 }
- 
+int mpi_rank_g = -1; 
 template <class numtyp, class acctyp>
 int EAMT::init(const int ntypes, double host_cutforcesq, int **host_type2rhor,
                int **host_type2z2r, int *host_type2frho,
@@ -281,7 +285,7 @@ void EAMT::compute(const int f_ago, const int inum_full, const int nlocal,
                    const bool eflag, const bool vflag,
                    const bool eatom, const bool vatom,
                    int &host_start, const double cpu_time,
-                   bool &success, void **fp_ptr) {
+                   bool &success, void **fp_ptr, int mpi_rank) {
   this->acc_timers();
   
   if (this->device->time_device()) {
@@ -330,6 +334,10 @@ void EAMT::compute(const int f_ago, const int inum_full, const int nlocal,
   this->atom->cast_x_data(host_x,host_type);
   this->atom->add_x_data(host_x,host_type);
 
+  //if(mpi_rank == 0){
+  	//fprintf(stderr, "eam_gpu_compute_n\tCopy neighbor list from host %x %d\n", getpid(), mpi_rank);
+	mpi_rank_g = mpi_rank;
+  //}
   loop(eflag,vflag);
 
   // copy fp from device to host for comm
@@ -350,7 +358,7 @@ int** EAMT::compute(const int ago, const int inum_full, const int nall,
                     const bool eflag, const bool vflag, const bool eatom,
                     const bool vatom, int &host_start, int **ilist, int **jnum,
                     const double cpu_time, bool &success, int &inum, 
-                    void **fp_ptr) {
+                    void **fp_ptr, int mpi_rank) {
   this->acc_timers();
   
   if (this->device->time_device()) {
@@ -402,6 +410,10 @@ int** EAMT::compute(const int ago, const int inum_full, const int nall,
   *ilist=this->nbor->host_ilist.begin();
   *jnum=this->nbor->host_acc.begin();
 
+  //if(mpi_rank == 0){
+  	//fprintf(stderr, "eam_gpu_compute\tReneighbor on GPU %x %d\n", getpid(), mpi_rank);
+  	mpi_rank_g = mpi_rank;
+  //}
   loop(eflag,vflag);
   
   // copy fp from device to host for comm
@@ -419,7 +431,7 @@ int** EAMT::compute(const int ago, const int inum_full, const int nall,
 // ---------------------------------------------------------------------------
 template <class numtyp, class acctyp>
 void EAMT::compute2(int *ilist, const bool eflag, const bool vflag,
-                    const bool eatom, const bool vatom) {
+                    const bool eatom, const bool vatom, int mpi_rank) {
   if (this->ans->inum()==0) 
     return;
   
@@ -428,6 +440,10 @@ void EAMT::compute2(int *ilist, const bool eflag, const bool vflag,
   this->add_fp_data();
   time_fp2.stop();
   
+  //if(mpi_rank == 0){
+  	//fprintf(stderr, "eam_gpu_compute_force %x %d\n", getpid(), mpi_rank);
+	mpi_rank_g = mpi_rank;
+  //}
   loop2(eflag,vflag);
   if (ilist == NULL)
     this->ans->copy_answers(eflag,vflag,eatom,vatom);
@@ -463,8 +479,16 @@ void EAMT::loop(const bool _eflag, const bool _vflag) {
   int nbor_pitch=this->nbor->nbor_pitch();
   this->time_pair.start();
   
+  struct timeval curr;
+  unsigned long curr_time;
+
   if (shared_types) {
     this->k_energy_fast.set_size(GX,BX);
+    if(mpi_rank_g == 0){
+	    gettimeofday(&curr, NULL);
+	    curr_time = curr.tv_sec * 1000000 + curr.tv_usec;
+	    fprintf(stderr, "k_energy_fast\t%llu\n", curr_time);
+    }
     this->k_energy_fast.run(&this->atom->x, &type2rhor_z2r, &type2frho,
                             &rhor_spline2, &frho_spline1,&frho_spline2, 
                             &this->nbor->dev_nbor,  &this->_nbor_data->begin(), 
@@ -509,8 +533,16 @@ void EAMT::loop2(const bool _eflag, const bool _vflag) {
   int nbor_pitch=this->nbor->nbor_pitch();
   this->time_pair2.start();
   
+  struct timeval curr;
+  unsigned long curr_time;
+
   if (shared_types) {
     this->k_pair_fast.set_size(GX,BX);
+    if(mpi_rank_g == 0){
+	    gettimeofday(&curr, NULL);
+	    curr_time = curr.tv_sec * 1000000 + curr.tv_usec;
+	    fprintf(stderr, "k_pair_fast\t%llu\n",curr_time);
+    }
     this->k_pair_fast.run(&this->atom->x, &_fp, &type2rhor_z2r,
                           &rhor_spline1, &z2r_spline1, &z2r_spline2, 
                           &this->nbor->dev_nbor, &this->_nbor_data->begin(), 

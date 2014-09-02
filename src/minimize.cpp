@@ -39,6 +39,7 @@ void Minimize::command(int narg, char **arg)
   update->etol = force->numeric(FLERR,arg[0]);
   update->ftol = force->numeric(FLERR,arg[1]);
   update->nsteps = force->inumeric(FLERR,arg[2]);
+  //fprintf(stderr, "Minimize::command %d\n", update->nsteps);
   update->max_eval = force->inumeric(FLERR,arg[3]);
 
   if (update->etol < 0.0 || update->ftol < 0.0)

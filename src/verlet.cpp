@@ -32,6 +32,12 @@
 #include "timer.h"
 #include "memory.h"
 #include "error.h"
+#include <sys/time.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <mqueue.h>
+#include <errno.h>
 
 using namespace LAMMPS_NS;
 
@@ -208,7 +214,12 @@ void Verlet::setup_minimal(int flag)
 /* ----------------------------------------------------------------------
    run for N steps
 ------------------------------------------------------------------------- */
-
+extern int g_iter, my_sim_g_rank;
+int run_g;
+extern mqd_t mqd_sim;
+struct timeval start_run, end_run;
+unsigned long long start_run_time, end_run_time, run_duration, run_duration_acc;
+double run_duration_avg;
 void Verlet::run(int n)
 {
   bigint ntimestep;
@@ -223,13 +234,47 @@ void Verlet::run(int n)
 
   if (atom->sortfreq > 0) sortflag = 1;
   else sortflag = 0;
-
+  struct timeval curr;
+  unsigned long curr_time;
+  run_g++;
   for (int i = 0; i < n; i++) {
 
+    //if((i%n == 0)&&(my_sim_g_rank == 0)){
+    //fprintf(stderr, "Verlet %d\n", run_g);
+    //}
+    //gettimeofday(&curr, NULL);
+    //curr_time = curr.tv_sec * 1000000 + curr.tv_usec;
+    //if(my_sim_g_rank == 0){
+    //	    fprintf(stderr, "RUN\t%llu\t%d\n", curr_time, g_iter);
+    //}
+    //g_iter++;
     ntimestep = ++update->ntimestep;
     ev_set(ntimestep);
 
     // initial time integration
+
+    /*if (-1 == mq_send(mqd_sim, (const char *)&g_iter, sizeof(int), 0)){
+    	    perror("mq_send() LAMMPS sending new step");
+    }
+    gettimeofday(&curr, NULL);
+    curr_time = curr.tv_sec * 1000000 + curr.tv_usec;
+    if(my_sim_g_rank == 0){
+	    fprintf(stderr, "RUN\t%llu\t%d\n", curr_time, g_iter);
+    }
+    gettimeofday(&end_run, NULL);
+    end_run_time = (end_run.tv_sec*1000000)+(end_run.tv_usec);
+    if(start_run_time > 0){
+	    run_duration = end_run_time - start_run_time;
+	    run_duration_acc += run_duration;
+	    if(g_iter>0){
+		    run_duration_avg = ((double)run_duration_acc)/((double)g_iter);
+	    }
+	    if(my_sim_g_rank == 0){
+		    fprintf(stderr, "RUN duration curr\t%llu\tavg\t%f\n", run_duration, run_duration_avg);
+	    }
+    }
+    gettimeofday(&start_run, NULL);
+    start_run_time = (start_run.tv_sec*1000000)+(start_run.tv_usec);*/
 
     modify->initial_integrate(vflag);
     if (n_post_integrate) modify->post_integrate();
@@ -267,15 +312,65 @@ void Verlet::run(int n)
     // since some bonded potentials tally pairwise energy/virial
     // and Pair:ev_tally() needs to be called before any tallying
 
+
+    if (-1 == mq_send(mqd_sim, (const char *)&g_iter, sizeof(int), 0)){
+    	    perror("mq_send() LAMMPS sending new step");
+    }
+    gettimeofday(&curr, NULL);
+    curr_time = curr.tv_sec * 1000000 + curr.tv_usec;
+    if(my_sim_g_rank == 0){
+	    fprintf(stderr, "RUN\t%llu\t%d\n", curr_time, g_iter);
+    }
+    gettimeofday(&end_run, NULL);
+    end_run_time = (end_run.tv_sec*1000000)+(end_run.tv_usec);
+    if(start_run_time > 0){
+	    run_duration = end_run_time - start_run_time;
+	    run_duration_acc += run_duration;
+	    if(g_iter>0){
+		    run_duration_avg = ((double)run_duration_acc)/((double)g_iter);
+	    }
+	    if(my_sim_g_rank == 0){
+		    fprintf(stderr, "RUN duration curr\t%llu\tavg\t%f\n", run_duration, run_duration_avg);
+	    }
+    }
+    gettimeofday(&start_run, NULL);
+    start_run_time = (start_run.tv_sec*1000000)+(start_run.tv_usec);
+
     force_clear();
     if (n_pre_force) modify->pre_force(vflag);
 
     timer->stamp();
 
+    //if(my_sim_g_rank == 0){
+    //	    fprintf(stderr, "LAMMPS new step %d\n", g_iter);
+    //}
+    /*if (-1 == mq_send(mqd_sim, (const char *)&g_iter, sizeof(int), 0)){
+    	    perror("mq_send() LAMMPS sending new step");
+    }*/
     if (pair_compute_flag) {
+	    /*gettimeofday(&curr, NULL);
+	    curr_time = curr.tv_sec * 1000000 + curr.tv_usec;
+	    if(my_sim_g_rank == 0){
+		    fprintf(stderr, "RUN\t%llu\t%d\n", curr_time, g_iter);
+	    }
+	    gettimeofday(&end_run, NULL);
+	    end_run_time = (end_run.tv_sec*1000000)+(end_run.tv_usec);
+	    if(start_run_time > 0){
+		    run_duration = end_run_time - start_run_time;
+		    run_duration_acc += run_duration;
+		    if(g_iter>0){
+			    run_duration_avg = ((double)run_duration_acc)/((double)g_iter);
+		    }
+		    if(my_sim_g_rank == 0){
+			    fprintf(stderr, "RUN duration curr\t%llu\tavg\t%f\n", run_duration, run_duration_avg);
+		    }
+	    }
+      gettimeofday(&start_run, NULL);
+      start_run_time = (start_run.tv_sec*1000000)+(start_run.tv_usec);*/
       force->pair->compute(eflag,vflag);
       timer->stamp(TIME_PAIR);
     }
+    g_iter++;
 
     if (atom->molecular) {
       if (force->bond) force->bond->compute(eflag,vflag);

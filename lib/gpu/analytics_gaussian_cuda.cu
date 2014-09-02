@@ -315,6 +315,11 @@ void ForwardSub()
 	
 	cudaMalloc((void **) &b_cuda, Size * sizeof(float));	
 
+#define COUNT 60000
+for(int i=0; i<COUNT; i++){
+
+        if(i%1000 == 0)
+	fprintf(stderr, "GAUSSIAN iteration %d\n", i);
 	// copy memory to GPU
 	cudaMemcpy(m_cuda, m, Size * Size * sizeof(float),cudaMemcpyHostToDevice );
 	cudaMemcpy(a_cuda, a, Size * Size * sizeof(float),cudaMemcpyHostToDevice );
@@ -357,6 +362,7 @@ void ForwardSub()
 	cudaMemcpy(m, m_cuda, Size * Size * sizeof(float),cudaMemcpyDeviceToHost );
 	cudaMemcpy(a, a_cuda, Size * Size * sizeof(float),cudaMemcpyDeviceToHost );
 	cudaMemcpy(b, b_cuda, Size * sizeof(float),cudaMemcpyDeviceToHost );
+}
 	cudaFree(m_cuda);
 	cudaFree(a_cuda);
 	cudaFree(b_cuda);

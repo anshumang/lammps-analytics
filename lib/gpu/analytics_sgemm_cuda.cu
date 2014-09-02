@@ -86,9 +86,12 @@ sgemm_wrap_main (int argc, char *argv[]) {
   // Copy A and B^T into device memory
   pb_SwitchToTimer( &timers, pb_TimerID_COPY );
    
-#define COUNT 2
+#define COUNT 1000
 //Loop to tweak length of analytics
   for(int i=0; i<COUNT; i++){
+	  if(i%10 == 0){
+	  fprintf(stderr, "SGEMM iteration %d\n", i);
+	  }
 	  cudaMemcpy(dA, &matA.front(), A_sz, cudaMemcpyHostToDevice); 
 	  cudaMemcpy(dB, &matBT.front(), B_sz, cudaMemcpyHostToDevice); 
 

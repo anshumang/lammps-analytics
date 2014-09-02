@@ -51,7 +51,7 @@ static void printActivity(CUpti_Activity *record)
 	if (rank == 0){
 		unsigned long long kernelStart = (cleStart.tv_sec * 1000000) + cleStart.tv_usec + ((kernel->start - cuptiStart)/1000);
 		unsigned long long kernelSpan = ((unsigned long long) kernel->end - (unsigned long long) kernel->start)/1000;
-		fprintf(stderr, "%s %llu %llu\n", kernel->name, kernelStart, kernelSpan);
+		fprintf(stderr, "%u : %s %llu %llu\n", kernel->streamId, kernel->name, kernelStart, kernelSpan);
 	}
     }
 }

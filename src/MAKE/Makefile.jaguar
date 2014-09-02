@@ -7,11 +7,13 @@ SHELL = /bin/sh
 # specify flags and libraries needed for your compiler
 
 CXX =           CC
+#CXX =           nvcc -I/opt/cray/mpt/6.3.0/gni/mpich2-pgi/121/include/ -I/opt/nvidia/cudatoolkit/5.5.20-1.0402.7700.8.1/extras/CUPTI/include
 CCFLAGS =	-g -O
 SHFLAGS =	-fPIC
 DEPFLAGS =	-M
 
-LINK =		$(CXX)
+#LINK =		$(CXX)
+LINK =		CC
 LINKFLAGS =	-g -O
 LIB =           
 SIZE =		size
@@ -40,6 +42,8 @@ LMP_INC =	-DLAMMPS_GZIP -DNODE_PARTITION
 MPI_INC =       -DMPICH_SKIP_MPICXX 
 MPI_PATH = 
 MPI_LIB =	-lmpich -lpthread
+#MPI_LIB =	-L/opt/cray/nvidia/default/lib64/ -L/opt/cray/mpt/6.3.0/gni/mpich2-pgi/121/lib/ -lmpich -lpthread
+#MPI_LIB =	-L/opt/cray/nvidia/default/lib64/ -L/opt/cray/lib64/ -lmpich -lpthread
 
 # FFT library, OPTIONAL
 # see discussion in doc/Section_start.html#2_2 (step 6)
@@ -63,7 +67,8 @@ JPG_INC =
 JPG_PATH = 	
 JPG_LIB =	
 
-CUPTI_LIB = -lcupti
+#CUPTI_LIB = -lcupti
+CUPTI_LIB = -L/opt/nvidia/cudatoolkit/5.5.20-1.0402.7700.8.1/extras/CUPTI/lib64 -lcupti
 
 # ---------------------------------------------------------------------
 # build rules and dependencies
@@ -78,7 +83,10 @@ EXTRA_LIB = $(PKG_LIB) $(MPI_LIB) $(FFT_LIB) $(JPG_LIB) $(PKG_SYSLIB) $(CUDA_LIB
 
 # Path to src files
 
+#vpath %.cpp ..
+#vpath %.h ..
 vpath %.cpp ..
+#vpath %.cu ..
 vpath %.h ..
 
 # Link target
@@ -101,8 +109,14 @@ shlib:	$(OBJ)
 %.o:%.cpp
 	$(CXX) $(CCFLAGS) $(SHFLAGS) $(EXTRA_INC) -c $<
 
+#%.o:%.cu
+#	$(CXX) -arch=sm_35 -Xptxas -v --use_fast_math $(CCFLAGS) $(SHFLAGS) $(EXTRA_INC) -c $<
+
 %.d:%.cpp
 	$(CXX) $(CCFLAGS) $(EXTRA_INC) $(DEPFLAGS) $< > $@
+
+#%.d:%.cu
+#	$(CXX) -arch=sm_35 -Xptxas -v --use_fast_math $(CCFLAGS) $(EXTRA_INC) $(DEPFLAGS) $< > $@
 
 # Individual dependencies
 

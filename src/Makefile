@@ -8,6 +8,7 @@ SHELL = /bin/bash
 ROOT =	lmp
 EXE =	$(ROOT)_$@
 SRC =	$(wildcard *.cpp)
+
 INC =	$(wildcard *.h)
 OBJ = 	$(SRC:.cpp=.o)
 
@@ -74,16 +75,16 @@ help:
 # Build the code
 
 .DEFAULT:
-	@test -f MAKE/Makefile.$@
-	@if [ ! -d Obj_$@ ]; then mkdir Obj_$@; fi
-	@$(SHELL) Make.sh style
-	@cp MAKE/Makefile.$@ Obj_$@/Makefile
-	@if [ ! -e Makefile.package ]; \
+	test -f MAKE/Makefile.$@
+	if [ ! -d Obj_$@ ]; then mkdir Obj_$@; fi
+	$(SHELL) Make.sh style
+	cp MAKE/Makefile.$@ Obj_$@/Makefile
+	if [ ! -e Makefile.package ]; \
 	  then cp Makefile.package.empty Makefile.package; fi
-	@if [ ! -e Makefile.package.settings ]; \
+	if [ ! -e Makefile.package.settings ]; \
 	  then cp Makefile.package.settings.empty Makefile.package.settings; fi
-	@cp Makefile.package Makefile.package.settings Obj_$@
-	@cd Obj_$@; \
+	cp Makefile.package Makefile.package.settings Obj_$@
+	cd Obj_$@; \
 	$(MAKE) $(MFLAGS) "OBJ = $(OBJ)" "INC = $(INC)" "SHFLAGS =" \
 	  "EXE = ../$(EXE)" ../$(EXE)
 

@@ -522,6 +522,8 @@ void Input::reallocate(char *&str, int &max, int n)
 int Input::execute_command()
 {
   int flag = 1;
+
+  //fprintf(stderr, "execute_command %s\n", command);
   
   if (!strcmp(command,"clear")) clear();
   else if (!strcmp(command,"echo")) echo();

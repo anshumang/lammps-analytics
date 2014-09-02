@@ -37,6 +37,7 @@
 #include "timer.h"
 #include "memory.h"
 #include "error.h"
+#include "mpi.h"
 
 using namespace LAMMPS_NS;
 
@@ -466,7 +467,7 @@ void Respa::run(int n)
   bigint ntimestep;
 
   for (int i = 0; i < n; i++) {
-
+    fprintf(stderr, "%d %d\n", n, i);
     ntimestep = ++update->ntimestep;
     ev_set(ntimestep);
 

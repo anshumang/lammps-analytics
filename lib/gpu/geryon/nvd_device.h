@@ -264,7 +264,9 @@ class UCL_Device {
 
 // Grabs the properties for all devices
 UCL_Device::UCL_Device() {
-  CU_SAFE_CALL_NS(cuInit(0));
+  //CU_SAFE_CALL_NS(cuInit(0));
+  int cerr = cuInit(0);
+  //fprintf(stderr, "cuInit : cerr = %d\n", cerr);
   CU_SAFE_CALL_NS(cuDeviceGetCount(&_num_devices));
   for (int dev=0; dev<_num_devices; ++dev) {
     CUdevice m;

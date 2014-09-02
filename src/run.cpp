@@ -24,6 +24,7 @@
 #include "timer.h"
 #include "error.h"
 #include "force.h"
+#include "stdio.h"
 
 using namespace LAMMPS_NS;
 
@@ -43,6 +44,7 @@ void Run::command(int narg, char **arg)
     error->all(FLERR,"Run command before simulation box is defined");
 
   bigint nsteps_input = ATOBIGINT(arg[0]);
+	//fprintf(stderr, "nsteps_input = %ld\n", nsteps_input);
 
   // parse optional args
 
@@ -92,6 +94,7 @@ void Run::command(int narg, char **arg)
     } else if (strcmp(arg[iarg],"every") == 0) {
       if (iarg+3 > narg) error->all(FLERR,"Illegal run command");
       nevery = force->inumeric(FLERR,arg[iarg+1]);
+	//fprintf(stderr, "nevery = %d\n", nevery);
       if (nevery <= 0) error->all(FLERR,"Illegal run command");
       first = iarg+2;
       last = narg-1;
@@ -108,11 +111,13 @@ void Run::command(int narg, char **arg)
     if (nsteps_input < 0 || nsteps_input > MAXSMALLINT)
       error->all(FLERR,"Invalid run command N value");
     nsteps = static_cast<int> (nsteps_input);
+	//fprintf(stderr, "YES uptoflag nsteps = %d\n", nsteps);
   } else {
     bigint delta = nsteps_input - update->ntimestep;
     if (delta < 0 || delta > MAXSMALLINT)
       error->all(FLERR,"Invalid run command upto value");
     nsteps = static_cast<int> (delta);
+	//fprintf(stderr, "NO uptoflag : nsteps = %d\n", nsteps);
   }
 
   // error check
@@ -155,6 +160,7 @@ void Run::command(int narg, char **arg)
 
   if (nevery == 0) {
     update->nsteps = nsteps;
+    //fprintf(stderr, "Run::command nevery == 0 %d\n", update->nsteps);
     update->firststep = update->ntimestep;
     update->laststep = update->ntimestep + nsteps;
     if (update->laststep < 0 || update->laststep > MAXBIGINT)
@@ -193,6 +199,7 @@ void Run::command(int narg, char **arg)
       nsteps = MIN(nleft,nevery);
 
       update->nsteps = nsteps;
+      //fprintf(stderr, "Run::command nevery != 0 %d\n", update->nsteps);
       update->firststep = update->ntimestep;
       update->laststep = update->ntimestep + nsteps;
       if (update->laststep < 0 || update->laststep > MAXBIGINT)
@@ -230,6 +237,7 @@ void Run::command(int narg, char **arg)
 
       nleft -= nsteps;
       iter++;
+	//fprintf(stderr, "iter = %d\tnleft = %d\tnsteps = %d\n", iter, nleft, nsteps);
     }
   }
 
