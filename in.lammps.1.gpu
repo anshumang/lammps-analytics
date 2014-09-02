@@ -1,0 +1,88 @@
+#Bicrystal yielding at 60 degrees from shear plane
+# enabling gpu
+newton          off
+#package 	gpu force/neigh 0 2 1.0
+#package 	gpu force 0 2 1.0
+package 	gpu force 0 0 1.0
+
+# Initiation -------------------------------------
+units		metal
+dimension	3
+boundary	p p p
+atom_style	atomic
+
+
+# Atom Definition --------------------------------
+lattice	fcc 3.615  
+region cuboid prism -31.5 31.5 -30.5 30.5 -20.5 20.5 0 0 0
+#region cuboid prism -126 126 -122 122 -82 41 0 0 0
+#region cuboid prism -252 252 -244 244 -164 82 0 0 0
+#region cuboid prism -63 63 -61 61 -41 41 0 0 0
+
+region slipper prism -31.5 31.5 -30.5 30.5 0 20.5 0 0 0
+#region slipper prism -126 126 -122 122 0 41 0 0 0
+#region slipper prism -252 252 -244 244 0 82 0 0 0
+#region slipper prism -63 63 -61 61 0 41 0 0 0
+
+region nonslipper prism -31.5 31.5 -30.5 30.5 -20.5 0 0 0 0
+#region nonslipper prism -126 126 -122 122 -82 0 0 0 0
+#region nonslipper prism -252 252 -244 244 -164 0 0 0 0
+#region nonslipper prism -63 63 -61 61 -41 0 0 0 0
+
+create_box 2 cuboid
+create_atoms 1 region slipper 
+lattice	fcc 3.615 orient x 1 2 3 orient y 2 -1 0 orient z 3 6 -5 
+create_atoms 2 region nonslipper 
+
+mass            * 63.54999999999999715783
+
+# Force Fields -----------------------------------
+pair_style	eam/alloy/gpu
+#pair_coeff	* * /nics/d/home/smagg/proj/wksp-ecl-cpp/2012-02-11-lammps-gpu/potentials/Cu_mishin1.eam.alloy Cu Cu 
+pair_coeff	* * Cu_mishin1.eam.alloy Cu Cu 
+
+delete_atoms    overlap 1.805 all all
+
+# Settings -------------------------------------------------------------------------------------------
+
+timestep	0.001
+thermo_style	custom step temp press pxx pyy pzz pxy pyz pxz pe ke etotal vol lx ly lz
+thermo		100
+
+
+
+#Minimization  -------------------------------------------------------------------------------------
+#minimize 	1.0e-25 1.0e-25 1000000 1000000
+minimize 	1.0e-25 1.0e-25 100 100
+velocity        all create 10 5928347 units box dist gaussian
+fix             1 all npt temp 10 10 1 x 0 0 1 y 0 0 1 z 0 0 1 xy 0 0 1 xz 0 0 1 yz 0 0 1 drag 0.0
+
+#run             50000
+run             100
+unfix 1
+
+variable E equal lz
+variable G equal xz
+
+compute     2 all pe/atom
+compute     3 all cna/atom 3.08
+compute     4 all stress/atom NULL
+
+
+#dump            1 all custom 5000 dump.* id type x y z c_2 c_3 c_4[1] c_4[2] c_4[3] c_4[4] c_4[5] c_4[6] vx vy vz 
+
+fix             2 all npt temp 10 10 1 x 0 0 1 y 0 0 1 z 0 -129903 1 xy 0 0 1 xz 0 -75000 1 yz 0 0 1 drag 0.0
+thermo_style    custom step temp press pxx pyy pzz pxy pyz pxz pe ke etotal vol lx ly lz xz f_2 f_2[1] f_2[2] f_2[3] f_2[4] f_2[5] f_2[6] f_2[7] f_2[8] f_2[9] f_2[10] f_2[11] f_2[12] f_2[13] f_2[14] f_2[15] f_2[16] f_2[17] f_2[18] f_2[19] f_2[20] f_2[21] f_2[22] f_2[23] f_2[24] f_2[25] f_2[26] f_2[27] f_2[28] f_2[29] f_2[30] f_2[31] f_2[32] f_2[33] f_2[34] f_2[35] f_2[36] f_2[37] f_2[38] f_2[39] f_2[40] f_2[41] f_2[42] f_2[43] f_2[44] f_2[45] f_2[46] f_2[47] f_2[48] f_2[49]
+
+label loopi
+#variable i loop 500000
+variable i loop 8
+#exact number does not matter as long as it is in the thousands
+#if "$E>170.0 || ($G>50.0 || $G<-50.0)" then "jump in.lammps.3.gpu break"
+#if "$E>170.0 || ($G>50.0 || $G<-50.0)" then "jump in.lammps.1.gpu break"
+##run             5000 start 0 stop 3000000
+run             100 start 0 stop 1000
+next i
+jump in.lammps.1.gpu loopi
+label break
+
